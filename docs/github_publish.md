@@ -1,21 +1,34 @@
-# GitHub project notes
+# Public data policy
 
-The public repository is:
+This repository is a public research companion.
 
-https://github.com/Hi-sizhui/database-familiarization
+## Git-tracked
 
-The repository contains the executable research harness, public demo database generator, experiment design, tests and model adapters.
+- source code;
+- benchmark registry;
+- public small fixtures;
+- scripts;
+- experiment definitions;
+- reproducibility documentation.
 
-Real organizational databases are intentionally excluded from version control. The demo SQLite database is generated locally by:
+## Downloaded locally but ignored by Git
 
-```bash
-python examples/tourism_demo/build_db.py
-```
+- large benchmark archives;
+- Git LFS/Xet objects;
+- Docker database volumes;
+- benchmark credentials;
+- gated ground-truth files;
+- any organizational database.
 
-For the research workflow, keep this separation:
+## Benchmark sources
 
-1. **Public repository:** code, synthetic/demo data, benchmark definitions, experiment scripts and reproducible results that are safe to publish.
-2. **Private environment:** real tourism-statistics data, credentials, internal schemas and potentially sensitive business information.
-3. **Paper artifacts:** anonymized aggregate results and selected reproducibility artifacts.
+The benchmark registry records official sources and licenses. Researchers should follow the source project's current access conditions rather than mirror gated or restricted assets into this repository.
 
-The GitHub repository is the open-source companion to the research paper, not a substitute for the paper itself.
+The main current sources are:
+
+- BIRD Mini-Dev — CC BY-SA 4.0.
+- LiveSQLBench-Base-Lite-SQLite — CC BY-SA 4.0.
+- BIRD-INTERACT / Mini-Interact — CC BY-SA 4.0.
+- Spider 2.0 — follow the upstream repository's current access and usage terms.
+
+The included Chinook SQLite fixture is from the upstream Chinook project, which publishes it under the MIT license.
