@@ -1,8 +1,8 @@
 database:
-  path: examples/tourism_demo/tourism_demo.db
+  path: data/public/chinook/Chinook_Sqlite.sqlite
   readonly: true
 exploration:
-  budget: 10
-  sample_rows_per_table: 2
+  budget: 20
+  sample_rows_per_table: 3
 memory:
-  output: examples/tourism_demo/database_memory.json
+  output: results/chinook_memory.json
