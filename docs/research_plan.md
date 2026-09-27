@@ -1,105 +1,130 @@
-# Research Plan: Database Familiarization
+# Research Protocol: Database Familiarization
 
-## 1. Research question
+## 1. Core question
 
-**Can an AI agent acquire a compact, persistent, reusable understanding of an unfamiliar database through autonomous exploration, and how much exploration is enough?**
+Can an agent acquire a compact, persistent and reusable understanding of an unfamiliar relational database through autonomous exploration?
 
-## 2. What current work already solves
+## 2. Experimental unit
 
-Recent work has already demonstrated autonomous database exploration, database-specific knowledge bases, reusable semantic memory, and semantic-layer-mediated SQL generation.
-
-Therefore, this project does **not** claim that an agent can inspect a database before generating SQL as its novelty.
-
-## 3. Proposed research gap
-
-We treat **database familiarization itself as the object of study** and measure:
-
-1. **Efficiency:** downstream task gain per unit exploration budget.
-2. **Sufficiency:** which knowledge types are needed for unseen queries.
-3. **Persistence:** how well frozen memory supports later tasks without raw-schema access.
-4. **Continual maintenance:** how performance changes after schema/business-rule drift and how much relearning is required.
-
-## 4. Empirical propositions
-
-**P1.** Increasing exploration budget improves downstream performance but eventually exhibits diminishing returns.
-
-**P2.** Knowledge composition matters: structural metadata alone is insufficient for domain-heavy tasks, while targeted profiling and business-semantic knowledge provide non-uniform gains.
-
-**P3.** A compact frozen memory can retain a substantial fraction of the downstream performance of repeated raw-database exploration under a fixed cost budget.
-
-**P4.** After schema or business-rule drift, selective re-exploration of affected knowledge can reduce adaptation cost relative to rebuilding the entire memory.
-
-These are empirical propositions, not findings.
-
-## 5. Experimental ladder
-
-### A — Cold start
-
-Compare:
-- schema only;
-- schema + examples;
-- autonomous exploration;
-- autonomous exploration + persistent memory.
-
-Metrics:
-- execution accuracy;
-- semantic accuracy;
-- exploration calls;
-- tokens/cost.
-
-### B — Familiarization curve
-
-Run multiple exploration budgets, for example 10 / 25 / 50 / 100 / 200 actions, and plot downstream performance against exploration cost.
-
-### C — Knowledge ablation
-
-Independently add:
-- schema structure;
-- PK/FK;
-- data profiles;
-- value examples;
-- join-path hypotheses;
-- metric/business semantics.
-
-Measure marginal downstream gains.
-
-### D — Persistent memory
-
-Freeze the learned memory and remove direct database introspection. Evaluate on unseen query sets.
-
-### E — Continual drift
-
-Modify:
-- columns;
-- join relationships;
-- metric definitions;
-- versioned business rules.
-
-Compare full relearning, no relearning, and targeted relearning.
-
-## 6. Evaluation split
-
-The onboarding phase must not see the final evaluation questions. We distinguish:
-
-- exploration-visible metadata;
-- exploration-visible sample access;
-- unseen evaluation questions;
-- post-drift evaluation questions.
-
-The final evaluation must not silently reintroduce the complete raw schema after memory is frozen.
-
-## 7. Engineering milestone
-
-The repository should first reproduce the complete local lifecycle:
+One run consists of:
 
 ```text
-create demo DB
-  -> inspect
-  -> explore under fixed budget
-  -> write persistent memory
-  -> freeze memory
-  -> evaluate learned knowledge
-  -> report cost + retained capability
+database D
++ exploration budget B
++ exploration policy pi
++ memory builder M
+-> frozen memory M_D
+-> unseen query set Q
+-> downstream evaluation
 ```
 
-Only after this harness is stable do we add frontier LLMs and real-domain data.
+## 3. What counts as learning?
+
+A run is considered a **familiarization run** only if:
+
+1. the agent receives a new database;
+2. it is allowed a bounded set of read-only exploration actions;
+3. it produces a persistent memory artifact;
+4. the raw database is removed from the model context for the frozen-memory evaluation;
+5. the evaluation questions were not used to choose the exploration actions.
+
+## 4. Main empirical propositions
+
+**P1. Familiarization curve:** increasing exploration budget improves downstream performance with diminishing returns.
+
+**P2. Knowledge composition:** different knowledge types have non-uniform marginal value; structural metadata is not sufficient for all queries.
+
+**P3. Persistence:** compact frozen memory can retain a substantial fraction of the performance obtained when the agent can repeatedly inspect the raw database.
+
+**P4. Relearning:** after controlled schema or business-semantic changes, targeted re-exploration can restore performance with less cost than full relearning.
+
+These are propositions to test, not conclusions.
+
+## 5. Experimental layers
+
+### Layer A — Local smoke test
+
+Included Chinook database. This only validates the software path.
+
+### Layer B — Public benchmark evaluation
+
+Primary starting point:
+- BIRD Mini-Dev
+- LiveSQLBench-Base-Lite-SQLite
+
+Secondary:
+- BIRD-INTERACT Mini/Lite
+- Spider 2.0-Lite / DBT
+
+High-complexity:
+- LiveSQLBench-Large-v1
+
+### Layer C — Ablation
+
+Compare memory components:
+- schema structure;
+- PK/FK;
+- row samples;
+- data profiles;
+- join-path hypotheses;
+- domain/business semantics;
+- historical query examples.
+
+### Layer D — Continual learning
+
+Inject:
+- schema additions/removals;
+- renamed or retyped fields;
+- changed join relationships;
+- changed business definitions.
+
+Compare:
+- no relearning;
+- full relearning;
+- targeted relearning.
+
+## 6. Metrics
+
+### Capability
+- Execution Accuracy where gold SQL/test cases are available.
+- Semantic / task success where an official evaluator is provided.
+- Schema-linking accuracy when annotations support it.
+
+### Learning efficiency
+- exploration actions;
+- tool-call count;
+- model tokens;
+- wall-clock time;
+- API cost.
+
+### Memory
+- serialized bytes;
+- tokenizer token count;
+- number of stored facts;
+- redundancy.
+
+### Continual learning
+- retained accuracy after drift;
+- relearning actions;
+- relearning latency;
+- accuracy recovered per unit cost.
+
+## 7. Experimental split
+
+For every database:
+
+- **onboarding-visible:** schema introspection and allowed database reads;
+- **evaluation-hidden:** final questions and gold answers;
+- **frozen-memory:** raw database access removed.
+
+Public benchmark fields that are intentionally withheld by the benchmark creators remain withheld; the harness must not bypass those restrictions.
+
+## 8. First paper scope
+
+The first paper should not promise a universal database-learning algorithm.
+
+The initial claim should be empirical:
+
+> database familiarization can be defined and measured as a budgeted learning process, and persistent database memory can be evaluated separately from query-time exploration.
+
+A stronger algorithmic contribution should only be introduced if the first experiments expose a reproducible bottleneck.
