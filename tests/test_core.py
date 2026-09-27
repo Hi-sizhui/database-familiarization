@@ -29,8 +29,12 @@ class TestCore(unittest.TestCase):
 
     def test_preflight_and_probe(self):
         p = SQLiteProfiler(self.tmp.name)
-        mem = Familiarizer(p, policy="adaptive").run(3)
+        mem = p.preflight()
+        self.assertEqual(set(mem.structural["tables"]), {"parent", "child"})
+        fam = Familiarizer(p, policy="adaptive")
+        mem = fam.run(3, mem)
         self.assertGreater(len(mem.empirical), 0)
+        mem = Familiarizer(p, policy="adaptive").run(10)
         self.assertGreaterEqual(len(mem.relations), 1)
 
     def test_freeze_roundtrip(self):
