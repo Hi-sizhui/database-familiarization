@@ -1,0 +1,8 @@
+database:
+  path: examples/tourism_demo/tourism_demo.db
+  readonly: true
+exploration:
+  budget: 10
+  sample_rows_per_table: 2
+memory:
+  output: examples/tourism_demo/database_memory.json
