@@ -1,178 +1,120 @@
 # Database Familiarization
 
-> **Can an AI agent actually learn a database?**
+> **How much should an agent learn from an unfamiliar database before it starts answering questions?**
 
-This repository is the research and engineering companion for studying **autonomous database familiarization**.
+This repository is an executable research prototype for studying **budgeted database familiarization**.
 
-The target is deliberately domain-general. The agent is given an unfamiliar database, chooses what to inspect, builds a compact database memory, and is then tested on unseen questions. Domain-specific optimization is a later phase; the initial benchmark is intended to expose general mechanisms.
+## Important 2026 novelty check
 
-## Research question
+The broad idea **"let an agent explore an unfamiliar database before generating SQL" is not new**. Current 2026 work already includes:
 
-Current 2026 systems already demonstrate autonomous schema exploration, agentic database exploration, database-specific knowledge bases and reusable semantic memory. This project does **not** claim those capabilities as new.
+- **SQLAgent (ACL 2026 Findings)** — separates database exploration from query generation and constructs a database-specific knowledge base.
+- **AutoLink (AAAI 2026)** — autonomous schema exploration/expansion for schema linking.
+- **APEX-SQL (KDD 2026)** — agentic exploration, profiling and hypothesis verification.
+- **AgentSM (2026)** — structured semantic memory that reuses prior Text-to-SQL trajectories.
 
-We study a narrower question:
+Therefore this project does **not** claim autonomous exploration, database-specific memory, or agentic Text-to-SQL as its own invention.
 
-> **How much does an agent actually need to learn about an unfamiliar database, how should it spend its exploration budget, what knowledge should become persistent memory, and how should that memory be reused and updated?**
+The research target is narrower:
 
-The lifecycle is:
+> **Given a finite onboarding budget, how should the agent choose what to learn, what knowledge should be persisted, how much capability survives after the raw database is removed from the loop, and how can the agent selectively relearn only what changed after database drift?**
 
-```text
-Unfamiliar Database
-      |
-      v
-Autonomous Exploration
-      |  (budgeted tool calls)
-      v
-Persistent Database Memory
-      |
-      v
-Memory Frozen
-      |
-      v
-Unseen Query Evaluation
-      |
-      +-- accuracy
-      +-- semantic grounding
-      +-- exploration cost
-      +-- memory size
-      +-- adaptation cost
-```
+The intended lifecycle is:
 
-## Why this is not a Text-to-SQL model repository
+`profile -> active probe -> consolidate -> freeze -> reuse -> detect drift -> targeted relearn`
 
-The database is the object being learned.
+## Current executable method
 
-Text-to-SQL is only one downstream test of whether the learned database memory is useful.
+The prototype implements four modules in `src/dbfamiliarity/core.py`:
 
-The primary experimental variables are:
+1. **Database Profiler**  
+   Extracts schema, row counts, PK/FK structure and candidate exploration actions.
 
-- exploration budget;
-- exploration policy;
-- knowledge types acquired;
-- memory size and structure;
-- memory reuse without raw-database access;
-- relearning after database drift.
+2. **Utility-driven Explorer**  
+   Chooses empirical column-profile probes and join probes using an information-value-per-cost heuristic. The policy is intentionally database-intrinsic: it does not inspect held-out query labels.
 
-## 2026 research context
+3. **Persistent Database Memory**  
+   Stores structural facts, empirical column profiles, join evidence and an action log. Memory can be serialized as JSON.
 
-Relevant contemporary work includes:
+4. **Freeze + drift hooks**  
+   A frozen memory artifact can be reloaded without reopening the database. A conservative drift detector compares memorized empirical facts and schema signatures, and a targeted relearning function refreshes only implicated facts.
 
-- **AutoLink (AAAI 2026):** autonomous schema exploration/expansion.
-- **APEX-SQL (2026):** agentic exploration, data profiling and hypothesis verification.
-- **SQLAgent (ACL 2026 Findings):** exploration followed by a database-specific knowledge base.
-- **AgentSM (2026):** reusable semantic memory for Text-to-SQL.
-- **LiveSQLBench-Large-v1 (2026):** industrial-scale databases, very large schemas and Business Rule Drift.
-- **BIRD-INTERACT (ICLR 2026 Oral):** interactive and agentic database tasks.
+Controlled baselines are:
+- `random`
+- `round_robin`
+- `adaptive`
 
-Our question starts **after** those capabilities: what does it mean, experimentally, for an agent to have become familiar with a database?
+## First local experiment
 
-## Public benchmark sources
+The environment used for the first execution is a small **Chinook-derived SQLite fixture** built only for engineering validation. It is not the paper benchmark.
 
-The project is designed around public, domain-diverse resources:
-
-| Resource | Scale / character | Role |
-|---|---|---|
-| **BIRD Mini-Dev** | 500 high-quality examples, 11 databases | initial accuracy + memory experiments |
-| **LiveSQLBench-Base-Lite-SQLite** | 18 databases, 270 tasks, local SQLite | local agent/exploration benchmark |
-| **BIRD-INTERACT Mini / Lite** | interactive/agentic tasks | dynamic interaction stress test |
-| **Spider 2.0-Lite** | 547 tasks across BigQuery/Snowflake/SQLite | enterprise-style complexity |
-| **Spider 2.0-DBT** | 68 DuckDB/DBT tasks | repository-level/code-agent extension |
-| **LiveSQLBench-Large-v1** | 18 industrial-scale databases, ~1K columns/database | high-complexity final evaluation |
-
-LiveSQLBench-Large-v1 is especially relevant for the long-term benchmark because it reports about 18 industrial-scale databases, roughly 1K columns per database, and explicit Business Rule Drift. It is not required for the first local prototype.
-
-## Included public database
-
-A copy of **Chinook SQLite v1.4.5** is included under `data/public/chinook/` as a small, reproducible local smoke-test database. The upstream project is MIT licensed.
-
-This database is only a local engineering test fixture. It is not intended to represent the final research benchmark.
-
-## First reproducible run
-
-Clone the repository, then:
+Run:
 
 ```bash
-PYTHONPATH=src python examples/chinook/run_demo.py
+python scripts/build_chinook_fixture.py
+PYTHONPATH=src python examples_oracle.py
+PYTHONPATH=src python experiments_drift.py
+PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-This will:
+The oracle experiment compares the three exploration policies at the same onboarding budget. The downstream solver is deliberately perfect and memory-grounded, so this first experiment isolates **whether the onboarding policy acquires reusable evidence efficiently**. This is a controlled method test, not a claim about LLM Text-to-SQL accuracy.
 
-1. open the included database;
-2. expose read-only database tools;
-3. run a budgeted baseline explorer;
-4. build a persistent JSON database memory;
-5. print the actions taken, learned tables and memory size.
+The drift experiment:
+- builds a frozen memory;
+- creates a controlled semantic change (renaming one genre);
+- detects the changed memorized fact;
+- refreshes only that fact;
+- confirms the original onboarding action log remains frozen.
 
-To run the local sanity tests:
+## Public database for the real benchmark
 
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -p "test_*.py" -v
+For the actual research benchmark, use the official **Chinook v1.4.5 SQLite release**:
+
+- upstream repository: https://github.com/lerocha/chinook-database
+- release asset: `Chinook_Sqlite.sqlite`
+
+The upstream repository describes Chinook as a multi-table sample database for demos/testing and provides the SQLite file in release v1.4.5. Verify the upstream license file before redistributing any copy in a research repository.
+
+For publishable experiments, this fixture should be replaced or supplemented with current benchmark suites such as **LiveSQLBench-Large-v1**, **BIRD-family / BIRD-INTERACT**, and **Spider 2.0**, because the small Chinook fixture cannot establish generality.
+
+## Research hypotheses
+
+**P1. Budget allocation.**  
+At equal onboarding budget, an information-directed exploration policy should acquire more transferable database knowledge than random or fixed-order exploration.
+
+**P2. Diminishing returns.**  
+Downstream capability should increase with onboarding budget, with marginal gains eventually decreasing.
+
+**P3. Frozen-memory reuse.**  
+A compact frozen memory should preserve a useful fraction of downstream capability without reopening the raw database for every question.
+
+**P4. Targeted continual learning.**  
+After controlled database/business-rule drift, targeted re-familiarization should recover useful capability with less relearning cost than full re-learning.
+
+P1-P4 are hypotheses. The repository must not treat them as established findings until they are tested on independent benchmark data.
+
+## What the final paper should contain
+
+The intended paper is not a software/documentation paper. The final experimental study should include:
+
+```baseline agents
+   -> equal onboarding budgets
+   -> frozen-memory evaluation
+   -> multiple database families
+   -> memory / policy ablations
+   -> multiple LLM backbones
+   -> drift + targeted relearning
+   -> cost / accuracy / memory-size trade-offs
 ```
 
-## Frontier-model experiments
+The central comparison is not "our framework vs. every Text-to-SQL system". It is:
 
-The repository includes an OpenAI-compatible backend adapter. Configure:
+> **same underlying agent + same downstream solver, with different database familiarization policies and memory states.**
 
-```bash
-export OPENAI_API_KEY=...
-export OPENAI_BASE_URL=...
-export OPENAI_MODEL=...
-```
+That isolates the contribution of the familiarization mechanism.
 
-Then use the LLM exploration policy rather than the deterministic heuristic baseline.
+## Reproducibility rule
 
-The code intentionally keeps the provider interface small so current models can be swapped without changing the benchmark protocol.
+No empirical result should be presented in the paper until it has been produced by the repository's experiment code on a benchmark that is separated from the exploratory onboarding process.
 
-## Benchmark acquisition
-
-Large benchmarks are **not copied wholesale into Git history**. Instead, `benchmarks/registry.yaml` records the official source, license, expected artifacts and a reproducible download command.
-
-This is deliberate: some current benchmarks are tens of gigabytes, use Git LFS/Xet, Docker images or gated evaluation files. The repository therefore keeps the experiment code and small public fixtures in Git, while the benchmark data is materialized into `data/external/` locally.
-
-## Research experiments
-
-The first experiment family is:
-
-1. **Familiarization curve** — downstream capability as exploration budget increases.
-2. **Knowledge ablation** — schema, PK/FK, samples, profiles, join paths and business semantics.
-3. **Frozen-memory evaluation** — evaluate unseen questions after raw database access is removed.
-4. **Memory compression** — compare full context against compact learned memory.
-5. **Continual learning** — modify schema/business semantics and measure targeted vs full relearning cost.
-
-## Repository layout
-
-```text
-database-familiarization/
-├── README.md
-├── LICENSE
-├── pyproject.toml
-├── benchmarks/
-│   └── registry.yaml
-├── configs/
-├── data/
-│   ├── public/
-│   │   └── chinook/
-│   └── external/          # downloaded locally, ignored by Git
-├── docs/
-├── examples/
-│   └── chinook/
-├── experiments/
-├── scripts/
-├── src/dbfamiliarity/
-└── tests/
-```
-
-## Reproducibility rules
-
-- No hidden manual semantic layer in the core familiarization benchmark.
-- Exploration actions are logged.
-- Evaluation queries are separated from onboarding.
-- Frozen-memory tests cannot silently re-open the raw database.
-- No empirical result is documented until the experiment has actually been run.
-- Real or licensed organizational data must not be committed to the public repository.
-
-## Status
-
-**Research prototype — public benchmark harness and local smoke test.**
-
-The next milestone is the first frontier-model familiarization curve on a current public benchmark.
+Domain-specific datasets can be used later for private adaptation, but the public benchmark contribution is deliberately domain-general.
