@@ -23,6 +23,20 @@ The intended lifecycle is:
 
 `profile -> active probe -> consolidate -> freeze -> reuse -> detect drift -> targeted relearn`
 
+
+### Novelty audit (updated 2026-09-27)
+
+The public literature check found four important neighboring lines of work:
+
+| Work | What is already established | What it means for this project |
+|---|---|---|
+| SQLAgent, ACL Findings 2026 | autonomous pre-query exploration and a database-specific knowledge base | do not claim exploration-before-generation as new |
+| AutoLink, AAAI 2026 | autonomous schema exploration/expansion | do not claim autonomous schema inspection as new |
+| AgentSM, 2026 | reusable semantic memory for agentic Text-to-SQL | do not claim persistent database memory as new |
+| *From Test-Time Scaling to Reusable Memory: Measuring Crystallization in Text-to-SQL*, Aug. 2026 | held-out same-database transfer from reusable memory is explicitly measured | do not claim frozen-memory transfer evaluation as new |
+
+The remaining candidate gap is narrower: **query-blind, budgeted database onboarding as an explicit resource-allocation problem, coupled with change-aware selective re-familiarization after drift**. This is a research hypothesis rather than a proof of originality; publication novelty must be re-checked against the final submission date.
+
 ## Current executable method
 
 The prototype implements four modules in `src/dbfamiliarity/core.py`:
@@ -86,7 +100,7 @@ At equal onboarding budget, an information-directed exploration policy should ac
 Downstream capability should increase with onboarding budget, with marginal gains eventually decreasing.
 
 **P3. Future-utility memory selection.**  
-Under the same memory budget, evidence selected using onboarding-time utility signals should yield better held-out transfer per byte/probe than naive retention policies. This is the part that must be distinguished from the 2026 crystallization study, which measures reuse of verified repair episodes. citeturn724372view0
+Under the same memory budget, evidence selected using onboarding-time utility signals should yield better held-out transfer per byte/probe than naive retention policies. This is the part that must be distinguished from the 2026 crystallization study, which measures reuse of verified repair episodes.
 
 **P4. Targeted continual familiarization.**  
 After controlled schema or business-rule drift, a change-aware agent should recover the stale capability with fewer probes than full database re-familiarization, while keeping unaffected memory intact.
