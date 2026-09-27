@@ -85,11 +85,11 @@ At equal onboarding budget, an information-directed exploration policy should ac
 **P2. Diminishing returns.**  
 Downstream capability should increase with onboarding budget, with marginal gains eventually decreasing.
 
-**P3. Frozen-memory reuse.**  
-A compact frozen memory should preserve a useful fraction of downstream capability without reopening the raw database for every question.
+**P3. Future-utility memory selection.**  
+Under the same memory budget, evidence selected using onboarding-time utility signals should yield better held-out transfer per byte/probe than naive retention policies. This is the part that must be distinguished from the 2026 crystallization study, which measures reuse of verified repair episodes. citeturn724372view0
 
-**P4. Targeted continual learning.**  
-After controlled database/business-rule drift, targeted re-familiarization should recover useful capability with less relearning cost than full re-learning.
+**P4. Targeted continual familiarization.**  
+After controlled schema or business-rule drift, a change-aware agent should recover the stale capability with fewer probes than full database re-familiarization, while keeping unaffected memory intact.
 
 P1-P4 are hypotheses. The repository must not treat them as established findings until they are tested on independent benchmark data.
 
