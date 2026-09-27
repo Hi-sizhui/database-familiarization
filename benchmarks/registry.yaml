@@ -1,0 +1,35 @@
+benchmarks:
+  - name: chinook_fixture
+    tier: L0
+    status: included
+    format: sqlite
+    role: engineering_smoke_test
+    notes: "Small reproducible Chinook-derived fixture; not a publishable benchmark."
+
+  - name: livesqlbench-base-lite-sqlite
+    tier: L1
+    status: external_download
+    role: first_public_experiment
+    official: https://github.com/bird-bench/livesqlbench
+    notes: "Use an official release checkout; do not copy the full dataset into this repository."
+
+  - name: bird-interact
+    tier: L2
+    status: external_download
+    role: interactive_validation
+    official: https://bird-bench.github.io/
+    notes: "Use the official release and evaluator."
+
+  - name: spiders
+    tier: L2
+    status: external_download
+    role: cross_benchmark_validation
+    official: https://spider2-sql.github.io/
+    notes: "Spider 2.0 Lite/DBT as supported by the official release."
+
+  - name: livesqlbench-large-v1
+    tier: L3
+    status: external_download
+    role: drift_and_scale
+    official: https://github.com/bird-bench/livesqlbench
+    notes: "18 industrial-scale databases, Business Rule Drift; final-scale experiment."
